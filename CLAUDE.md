@@ -34,11 +34,27 @@ This project has **three goals at once** — every decision should serve all thr
 - **Surface interview questions.** After each meaningful unit of work, list 2–3 interview-style
   questions that unit unlocks, so learning compounds.
 
-## 3. Build order (locked)
+## 3. Build order (revised 2026-10-09, see ADR-004)
 
-1. **Backend** — API, database, auth, multi-tenancy (current focus)
-2. **Web frontend** — Super Admin panel + School Admin panel (React / Next.js)
-3. **Mobile app** — Student / Parent / Teacher (React Native) — last step
+The AI service, Docker, CI and cloud are pulled forward. Web and mobile come last because
+Ejaz already knows them; the phases before them are where the new learning is.
+
+| Phase | What we build | What it teaches |
+|---|---|---|
+| **0. Foundations** *(current)* | Tests for Schools CRUD, GitHub Actions (lint + test on every push), backend Dockerfile, migrations instead of `synchronize: true` | Testing, CI, Docker basics |
+| **1. Auth and tenancy** | Users, bcrypt, JWT + refresh rotation, RBAC guards, Row-Level Security, a test proving School A cannot read School B | Security, multi-tenancy |
+| **2. One real slice** | Students, classes, attendance, plus a seed script with realistic fake data | Domain modelling; data for the AI to query |
+| **3. AI service + evals** | Python FastAPI service: "ask your school's data in plain English", limited to the caller's school by a read-only DB role + RLS. Golden set of 40–50 questions as a regression suite in CI | Text-to-SQL, evals (Promptfoo / DeepEval), tracing and cost (Langfuse), Pydantic v2, pytest, type hints, Ruff, async Python |
+| **4. RAG** | Search over school documents (circulars, policies, homework) with pgvector in the same Postgres | Chunking, hybrid search, reranking, retrieval quality |
+| **5. Cloud** | Deploy both services to AWS or GCP: managed DB, file storage, secrets manager, basic Terraform, deploys from GitHub | Cloud, infrastructure, secrets |
+| **6. Web and mobile** | Next.js admin panels, then the React Native app | Finishes the product |
+
+**Rhythm for every step:** learn the concept (about 30 min) → build it in small steps → write
+the test → note three interview questions. Each phase ends with a README section and one
+LinkedIn post.
+
+**Hard rule:** the AI service is written from Ejaz's own understanding. No code, prompts or
+schemas are copied from his employer's repositories.
 
 ## 4. Tech stack (decisions)
 
@@ -127,6 +143,21 @@ with Ejaz's existing React Native expertise. Supersedes the PRD's Flutter recomm
 **Trade-off accepted:** Prisma has nicer DX and is hot for greenfield startups — worth learning
 later — but TypeORM is the better fit for a NestJS + multi-tenant-RLS + learning-first project.
 
+### ADR-004 — Pull the AI service, CI, Docker and cloud ahead of web and mobile
+**Decision:** After a thin backend slice (auth, tenancy, students/classes/attendance), build
+the Python AI service with evals, then RAG, then cloud deployment. Web and mobile move last.
+
+**Reasoning:**
+- Ejaz's learning goals for 2026–27 are LLM application engineering and evals, production
+  Python, Docker and one cloud, and testing with CI. On the old order none of these would be
+  touched for many months.
+- Tests, CI and Docker are cheapest to add at two commits, not after ten modules.
+- Multi-tenant text-to-SQL (a wrong query could leak another school's data) is the most
+  distinctive thing this project can demonstrate.
+
+**Trade-off accepted:** the product has no user interface for longer. Swagger and the AI
+service's own endpoint are the only ways to use it until Phase 6.
+
 ---
 
 ## 9. Source of truth
@@ -148,5 +179,7 @@ This file captures **decisions and deviations**; the PRD captures the **full fea
   `CreateSchoolDto` / `UpdateSchoolDto` (PartialType). Endpoints: POST, GET all, GET :id, PATCH, DELETE.
   Table auto-created via synchronize.
 - Ejaz inspects the DB in **DBeaver** (connection "SMS – Docker (5433)").
-- **Next up (roadmap step 3→4):** add remaining PRD `School` fields (branding/plan) as needed, then
-  **Users & Authentication** (register/login, bcrypt, JWT), then RBAC, then multi-tenancy enforcement.
+- **2026-10-09 — Roadmap revised (ADR-004).** Build order now runs Phase 0 → 6 as in section 3.
+- **Next up — Phase 0, step 1:** first unit tests for `SchoolsService` (Jest, mocked repository).
+  Then: e2e test for the Schools endpoints → GitHub Actions → backend Dockerfile → migrations.
+  Users & Authentication (old "next up") is now Phase 1.
