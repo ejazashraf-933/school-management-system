@@ -45,3 +45,35 @@ jobs:
       # Run the Jest unit tests. A failing test fails the whole job.
       - name: Run unit tests
         run: npm test
+
+  # CD job: deploys, but only after the CI job above has passed.
+  deploy:
+    name: Deploy
+    # "needs" makes this job wait for ci and skip itself if ci failed.
+    needs: ci
+    runs-on: ubuntu-latest
+
+    # Pick the GitHub Environment from the branch that was pushed:
+    # main -> School_Prod, anything else (dev) -> School_Dev.
+    # The secrets and variables below then come from that environment,
+    # so the same names give different values for dev and prod.
+    environment:
+      name: ${{ github.ref_name == 'main' && 'School_Prod' || 'School_Dev' }}
+      url: ${{ vars.API_URL }}
+
+    steps:
+      # No server exists yet, so this step only reports what it would deploy.
+      # Secrets are never printed: the step only checks that they are set.
+      # (GitHub would also mask them as *** if they were printed.)
+      - name: Deploy (dry run)
+        working-directory: .
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          API_URL: ${{ vars.API_URL }}
+        run: |
+          echo "Branch:       ${{ github.ref_name }}"
+          echo "Environment:  ${{ github.ref_name == 'main' && 'School_Prod' || 'School_Dev' }}"
+          echo "Would deploy commit ${{ github.sha }} to $API_URL"
+          if [ -n "$DATABASE_URL" ]; then echo "DATABASE_URL: set"; else echo "DATABASE_URL: MISSING"; exit 1; fi
+          if [ -n "$JWT_SECRET" ];   then echo "JWT_SECRET:   set"; else echo "JWT_SECRET:   MISSING"; exit 1; fi
