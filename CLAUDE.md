@@ -180,6 +180,14 @@ This file captures **decisions and deviations**; the PRD captures the **full fea
   Table auto-created via synchronize.
 - Ejaz inspects the DB in **DBeaver** (connection "SMS – Docker (5433)").
 - **2026-10-09 — Roadmap revised (ADR-004).** Build order now runs Phase 0 → 6 as in section 3.
+- **2026-10-16 — CI/CD set up (Phase 0).** Repository made public. Branches: `dev` for work,
+  `main` for production; `main` is protected by the `protect-main` ruleset (pull request
+  required, `Build and test` must pass, no force pushes). Workflow `.github/workflows/deploy.yml`:
+  `ci` job (npm ci → build → unit tests) runs on both branches; `deploy` job needs `ci` and
+  picks the GitHub Environment by branch (`dev` → `School_Dev`, `main` → `School_Prod`), with
+  the same secret names (`DATABASE_URL`, `JWT_SECRET`) and variable (`API_URL`) in each.
+  Deploy is a dry run until a real server exists. E2E tests are not in CI yet (they need a
+  Postgres service container).
 - **Next up — Phase 0, step 1:** first unit tests for `SchoolsService` (Jest, mocked repository).
   Then: e2e test for the Schools endpoints → GitHub Actions → backend Dockerfile → migrations.
   Users & Authentication (old "next up") is now Phase 1.
