@@ -1,0 +1,47 @@
+# Workflow name, shown in the GitHub "Actions" tab.
+name: CI/CD
+
+# When this workflow runs: on every push to the dev or main branch.
+on:
+  push:
+    branches: [dev, main]
+
+# Every "run:" command below starts inside backend/, where package.json lives.
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  # CI job: proves the code installs, compiles and passes its tests.
+  # It runs for both branches.
+  ci:
+    name: Build and test
+    # A fresh Ubuntu machine that GitHub provides for each run.
+    runs-on: ubuntu-latest
+
+    steps:
+      # Download this repository's code onto the machine.
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      # Install Node 22 (same as the local PC) and cache downloaded packages
+      # between runs, keyed on the lock file, so later runs install faster.
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      # Install exactly the versions in package-lock.json. Unlike "npm install",
+      # "npm ci" never changes the lock file and fails if it is out of date.
+      - name: Install dependencies
+        run: npm ci
+
+      # Compile TypeScript to JavaScript (into dist/). Fails on any type error.
+      - name: Build
+        run: npm run build
+
+      # Run the Jest unit tests. A failing test fails the whole job.
+      - name: Run unit tests
+        run: npm test
